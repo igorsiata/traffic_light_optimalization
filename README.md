@@ -13,18 +13,18 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 
 ### Zmienne stanu
 * ***qi(t)*** – liczba pojazdów oczekujących w kolejce na pasie i  
-  ***qi(t+1) = qi(t) + ai(t) - vi(t)*xi(t)***
+  ***qi(t+1) = qi(t) + ai(t) - vi(t) * xi(t)***
 * ***vi(t)*** – przepustowość na pasie i  
-* *ai(t)* – przyrost pojazdów na pasie i    
+* ***ai(t)*** – przyrost pojazdów na pasie i    
 
 ### Ograniczenia:
-* Tmin, Tmax – minimalny i maksymalny czas trwania zielonego światła  
-* Top – czas pomiędzy przełączeniem świateł (żółte światło)  
-* Ci – lista pasów kolidujących z pasem i  
+* ***Tmin, Tmax*** – minimalny i maksymalny czas trwania zielonego światła  
+* ***Top*** – czas pomiędzy przełączeniem świateł (żółte światło)  
+* ***Ci*** – lista pasów kolidujących z pasem i  
 * W jednej rotacji muszą zaświecić się wszystkie światła  
  
 ### Funcja celu
-min(sum(q(t))
+***min(sum(q(t))***
 
 ### Możliwe podejścia:
 #### 1. Stały czas przełączania:
