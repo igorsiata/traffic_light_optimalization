@@ -8,14 +8,14 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 
 ### Zmienne decyzyjne
 (Mogą być używanne zamiennie) 
-* xi(t) – stan sygnalizacji na pasie i (1-zielone, 0-czerwone)
-* Ti_on, Ti_off - czas włączenia i wyłączenia sygnalizacji na pasie i 
+* ***xi(t)*** – stan sygnalizacji na pasie i (1-zielone, 0-czerwone)
+* ***Ti_on, Ti_off*** - czas włączenia i wyłączenia sygnalizacji na pasie i 
 
 ### Zmienne stanu
-* qi(t) – liczba pojazdów oczekujących w kolejce na pasie i  
-  qi(t+1) = qi(t) + ai(t) - vi(t)*xi(t)
-* vi(t) – przepustowość na pasie i  
-* ai(t) – przyrost pojazdów na pasie i    
+* ***qi(t)*** – liczba pojazdów oczekujących w kolejce na pasie i  
+  ***qi(t+1) = qi(t) + ai(t) - vi(t)*xi(t)***
+* ***vi(t)*** – przepustowość na pasie i  
+* *ai(t)* – przyrost pojazdów na pasie i    
 
 ### Ograniczenia:
 * Tmin, Tmax – minimalny i maksymalny czas trwania zielonego światła  
