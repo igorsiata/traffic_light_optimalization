@@ -24,17 +24,22 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 * ***Di*** - lista kierunków w jakie można pojechać z pasa i
 * W jednej rotacji muszą zaświecić się wszystkie światła  
  
+
+
 ### Funcja celu
 ![Równanie](images/equation_minimize.PNG)
 
-### Możliwe podejścia:
-#### 1. Stały czas przełączania:
+### Uproszczenia:
+* Kierowcy nie popełniają błędów, stosują się do zasad ruchu drogowego
+
+## Możliwe podejścia:
+### 1. Stały czas przełączania:
 Określone czasy trwania zielonego światła są takie same dla każdego cyklu, niezależnie od aktualnego natężenia ruchu.
 
-#### 2. Adaptacyjne sterowanie:
+### 2. Adaptacyjne sterowanie:
 Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, sensorów) do dynamicznego dostosowywania cyklu świateł.
 
 
-### Model skrzyżowania
+## Model skrzyżowania
 Na przykładzie tego skrzyżowania będzie przeprowadzana optymalizacja, jednak celem będzię możliwie jak najbardziej uogólnić model aby miał zastosowania również do innych skrzyżowań.  
 <img alt="Obraz skrzyżowania" src="images/crossroad.jpg" width=50% height=50%>
