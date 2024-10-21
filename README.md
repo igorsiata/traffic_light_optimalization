@@ -25,7 +25,7 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 * W jednej rotacji muszą zaświecić się wszystkie światła  
  
 ### Funcja celu
-***min(sum(q(t))***
+![Równanie](images\equation_minimize.PNG)
 
 ### Możliwe podejścia:
 #### 1. Stały czas przełączania:
