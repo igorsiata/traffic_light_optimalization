@@ -37,4 +37,4 @@ Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, 
 
 ### Model skrzyżowania
 Na przykładzie tego skrzyżowania będzie przeprowadzana optymalizacja, jednak celem będzię możliwie jak najbardziej uogólnić model aby miał zastosowania również do innych skrzyżowań.  
-<img alt="Obraz skrzyżowania" src="images/corssroad.jpg" width=50% height=50%>
+<img alt="Obraz skrzyżowania" src="images/crossroad.jpg" width=50% height=50%>
