@@ -33,3 +33,6 @@ Określone czasy trwania zielonego światła są takie same dla każdego cyklu, 
 #### 2. Adaptacyjne sterowanie:
 Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, sensorów) do dynamicznego dostosowywania czasu trwania zielonego światła.
 
+
+### Model skrzyżowania
+![Skrzyżowanie](images/crossroad.jpg)
