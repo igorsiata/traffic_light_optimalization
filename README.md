@@ -32,7 +32,7 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 Określone czasy trwania zielonego światła są takie same dla każdego cyklu, niezależnie od aktualnego natężenia ruchu.
 
 #### 2. Adaptacyjne sterowanie:
-Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, sensorów) do dynamicznego dostosowywania czasu trwania zielonego światła.
+Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, sensorów) do dynamicznego dostosowywania cyklu świateł.
 
 
 ### Model skrzyżowania
