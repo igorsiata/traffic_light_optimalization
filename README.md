@@ -14,4 +14,7 @@ Tmin, Tmax – minimalny i maksymalny czas trwania zielonego światła
 Top – czas pomiędzy przełączeniem świateł (żółte światło)
 Ci – lista pasów kolidujących z pasem i
 W jednej rotacji muszą zaświecić się wszystkie światła
-
+### Co podelga optymalizacji:
+Ti_on, Ti_off - czas włączenia i wyłączenia sygnalizacji na pasie i
+### Funcja celu
+min(sum(q(t))
