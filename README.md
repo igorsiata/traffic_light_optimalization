@@ -20,7 +20,8 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 ### Ograniczenia:
 * ***Tmin, Tmax*** – minimalny i maksymalny czas trwania zielonego światła  
 * ***Top*** – czas pomiędzy przełączeniem świateł (żółte światło)  
-* ***Ci*** – lista pasów kolidujących z pasem i  
+* ***Ci*** – lista pasów kolidujących z pasem i
+* ***Di*** - lista kierunków w jakie można pojechać z pasa i
 * W jednej rotacji muszą zaświecić się wszystkie światła  
  
 ### Funcja celu
@@ -35,4 +36,5 @@ Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, 
 
 
 ### Model skrzyżowania
-![Skrzyżowanie](images/crossroad.jpg)
+Na przykładzie tego skrzyżowania będzie przeprowadzana optymalizacja, jednak celem będzię możliwie jak najbardziej uogólnić model aby miał zastosowania również do innych skrzyżowań.
+![Skrzyżowanie](images/corssroad.jpg)
