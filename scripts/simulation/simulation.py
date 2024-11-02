@@ -1,108 +1,151 @@
-import pygame
-from pygame.locals import *
-from objects import *
-import os
+from typing import List
+from enum import Enum
+import random
 
 
-class SimulationGraphic:
-    def __init__(self) -> None:
-        self.car_image = pygame.image.load("images\car_yellow.png")
-        self.simulation = Simulation(FourDirectionTwoLaneCrossroad)
-        self.start_time = pygame.time.get_ticks()
-        self.lane_to_xy_map = {
-            Location.EAST: {Turn.LEFT: (520, 370),
-                            Turn.RIGHT: (520, 323),
-                            Turn.FORWARD: (520, 323)},
-            Location.WEST: {Turn.LEFT: (275, 425),
-                            Turn.RIGHT: (275, 475),
-                            Turn.FORWARD: (275, 476)},
-            Location.NORTH: {Turn.LEFT: (370, 275),
-                             Turn.RIGHT: (320, 275),
-                             Turn.FORWARD: (320, 275)},
-            Location.SOUTH: {Turn.LEFT: (420, 525),
-                             Turn.RIGHT: (470, 525),
-                             Turn.FORWARD: (470, 525)}
-        }
-        self.lane_dxy_map = {
-            Location.EAST: (20, 0),
-            Location.WEST: (-20, 0),
-            Location.NORTH: (0, -20),
-            Location.SOUTH: (0, 20)
-        }
+class Location(Enum):
+    SOUTH = "S"
+    WEST = "W"
+    NORTH = "N"
+    EAST = "E"
 
-    def timer(self, timer_duration):
-        current_time = pygame.time.get_ticks()
-        elapsed_time = current_time - self.start_time
-        if elapsed_time >= timer_duration:
-            self.start_time = pygame.time.get_ticks()
-            self.simulation.step()
+    def __str__(self):
+        return self.name
 
-    def lane_to_xy(self, lane: Lane, i: int):
-        base_xy = self.lane_to_xy_map[lane.location][lane.possible_turns[0]]
-        d_xy = self.lane_dxy_map[lane.location]
-        xy_cords = (base_xy[0] + d_xy[0]*i, base_xy[1] + d_xy[1] * i)
-        return xy_cords
-
-    def render_cars(self, surface) -> None:
-        for lane in self.simulation.crossroad.lanes:
-            for i, car in enumerate(lane.queue):
-                pygame.draw.circle(surface, (0, 0, 255),
-                                   self.lane_to_xy(lane, i), 10)
-
-    def render_lights(self, surface) -> None:
-        for lane in self.simulation.crossroad.lanes:
-            color = (0, 255, 0) if lane.green_light else (255, 0, 0)
-            x, y = self.lane_to_xy(lane, -2)
-            pygame.draw.circle(surface, color, (x, y), 10)
+    def __repr__(self) -> str:
+        return self.name
 
 
-class App:
-    def __init__(self) -> None:
-        self._running = True
-        self._display_surf = None
-        self.size = self.weight, self.height = 800, 800
-        self.FPS = 60
-        self.FramePerSec = pygame.time.Clock()
-        self.simulation_graphics = SimulationGraphic()
+class Simulation:
+    def __init__(self, lights_cycle, turns=0) -> None:
+        self.lights_cycle = lights_cycle
+        self.turn_time = len(lights_cycle)
+        self.turns = turns
+        print(list(Location))
+        self.car_add_from = random.choices(list(Location),
+                                           weights=[20, 20, 20, 20], k=len(lights_cycle))
 
-    def on_init(self):
-        pygame.init()
-        self._display_surf = pygame.display.set_mode(
-            self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
+    def run(self, lights_cycle) -> int:
+        self.crossroad = Crossroad(lights_cycle)
+        score = 0
+        for _ in range(self.turns):
+            for t in range(self.turn_time):
+                self.add_car(t)
+                score += self.crossroad.step(t)
+        return score
 
-        self.background_image = pygame.image.load("images\crossroad.jpg")
-        self._running = True
-        return self._display_surf is not None
+    def step(self, t) -> None:
+        self.add_car(t)
+        self.crossroad.step(t)
 
-    def on_event(self, event):
-        if event.type == pygame.QUIT:
-            self._running = False
-
-    def on_loop(self):
-        self.simulation_graphics.timer(100)
-
-    def on_render(self):
-        self._display_surf.blit(self.background_image, (0, 0))
-        self.simulation_graphics.render_cars(self._display_surf)
-        self.simulation_graphics.render_lights(self._display_surf)
-        pygame.display.flip()
-
-    def on_cleanup(self):
-        pygame.quit()
-
-    def on_execute(self):
-        if self.on_init() == False:
-            self._running = False
-
-        while (self._running):
-            for event in pygame.event.get():
-                self.on_event(event)
-            self.on_loop()
-            self.on_render()
-            self.FramePerSec.tick(self.FPS)
-        self.on_cleanup()
+    def add_car(self, t):
+        location = random.choices(list(Location),
+                                  weights=[20, 5, 20, 10], k=1)[0]
+        # location = self.car_add_from[t]
+        direction_list = list(Location)
+        direction_list.remove(location)
+        direction = random.choice(direction_list)
+        car_to_add = Car(location, direction)
+        self.crossroad.add_car(car_to_add)
 
 
-if __name__ == "__main__":
-    theApp = App()
-    theApp.on_execute()
+class Crossroad:
+    def __init__(self, lights_cycle) -> None:
+        self.lights_cycle: List[bool] = lights_cycle  # direction (N,E,S,W)
+        self.in_lanes: List[Lane] = []
+        self.out_lanes: List[Lane] = []
+        self.add_in_lanes()
+        self.add_out_lanes()
+
+    def step(self, time) -> int:
+        score = 0
+        green_light_now = self.lights_cycle[time]
+        # yellow light so reset all counters
+        if green_light_now == None:
+            self.reset_lights_counters()
+        # process cars in lane with green lights
+        for in_lane in self.in_lanes:
+            score += len(in_lane.queue)
+            if in_lane.location == green_light_now:
+                in_lane.process_cars()
+
+        return score
+
+    def reset_lights_counters(self) -> None:
+        for in_lane in self.in_lanes:
+            in_lane.processing_counter = 0
+
+    def add_car(self, car: 'Car') -> None:
+        for in_lane in self.in_lanes:
+            if in_lane.location == car.location:
+                in_lane.add_car(car)
+
+    def add_in_lanes(self) -> None:
+        self.in_lanes.append(Lane(Location.SOUTH,
+                                  [Location.WEST, Location.NORTH,
+                                   Location.EAST, Location.SOUTH],
+                                  processing_time=2))
+        self.in_lanes.append(Lane(Location.WEST,
+                                  [Location.WEST, Location.NORTH,
+                                   Location.EAST, Location.SOUTH],
+                                  processing_time=2))
+        self.in_lanes.append(Lane(Location.NORTH,
+                                  [Location.WEST, Location.NORTH,
+                                   Location.EAST, Location.SOUTH],
+                                  processing_time=2))
+        self.in_lanes.append(Lane(Location.EAST,
+                                  [Location.WEST, Location.NORTH,
+                                   Location.EAST, Location.SOUTH],
+                                  processing_time=2))
+
+    def add_out_lanes(self) -> None:
+        self.out_lanes.append(Lane(Location.SOUTH,
+                                   [], None))
+        self.out_lanes.append(Lane(Location.WEST,
+                                   [], None))
+        self.out_lanes.append(Lane(Location.NORTH,
+                                   [], None))
+        self.out_lanes.append(Lane(Location.EAST,
+                                   [], None))
+
+
+class Car:
+    def __init__(self, location, destination) -> None:
+        self.location: Lane = location
+        self.destination: Lane = destination
+        self.path: List[Lane] = self.get_path()
+
+    def get_path(self):
+        return [self.destination]
+
+    def move(self) -> None:
+        new_lane = self.path.pop(0)
+        if self.path == []:
+            pass
+        else:
+            new_lane.add_car(self)
+
+    def __str__(self) -> str:
+        return f"Car from:{self.location}, turning {self.turn}"
+
+
+class Lane:
+
+    def __init__(self, location, out_conections, processing_time) -> None:
+        self.out_connections: List['Location'] = out_conections
+        self.queue: List[Car] = []
+        self.location: Location = location
+        self.processing_time = processing_time
+        self.processing_counter = 0
+
+    def process_cars(self) -> None:
+        if not self.queue:
+            return
+        if self.processing_counter >= self.processing_time:
+            car = self.queue.pop(0)
+            car.move()
+        else:
+            self.processing_counter += 1
+
+    def add_car(self, car: Car) -> None:
+        self.queue.append(car)
