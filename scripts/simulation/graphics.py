@@ -7,46 +7,25 @@ import os
 class SimulationGraphic:
     def __init__(self) -> None:
 
-        self.lights_cycle = [Location.SOUTH]*20 + [None] * 5 +\
-            [Location.WEST]*20 + [None] * 5 +\
-            [Location.NORTH]*20 + [None] * 5 +\
-            [Location.EAST]*20 + [None] * 5
+        self.lights_cycle = [Direction.SOUTH]*20 + [None] * 5 +\
+            [Direction.WEST]*20 + [None] * 5 +\
+            [Direction.NORTH]*20 + [None] * 5 +\
+            [Direction.EAST]*20 + [None] * 5
         self.step_counter = 0
         self.simulation: Simulation = Simulation(self.lights_cycle)
         self.start_time = pygame.time.get_ticks()
         self.lane_to_xy_map = {
-            Location.EAST: (500, 363),
-            Location.WEST: (295, 438),
-            Location.NORTH: (360, 295),
-            Location.SOUTH: (435, 505)
+            Direction.EAST: (500, 363),
+            Direction.WEST: (295, 438),
+            Direction.NORTH: (360, 295),
+            Direction.SOUTH: (435, 505)
         }
         self.lane_dxy_map = {
-            Location.EAST: (20, 0),
-            Location.WEST: (-20, 0),
-            Location.NORTH: (0, -20),
-            Location.SOUTH: (0, 20)
+            Direction.EAST: (20, 0),
+            Direction.WEST: (-20, 0),
+            Direction.NORTH: (0, -20),
+            Direction.SOUTH: (0, 20)
         }
-
-    def generate_cycle(self, lights_times, lights_permutation):
-        lights_cycle = []
-        for i in range(4):
-            direction = lights_permutation[i]
-            lights_cycle += [direction] * \
-                lights_times[direction] + [None]*5
-        return lights_cycle
-
-    def update_lights_cycle(self):
-
-        lights_times = {Location.SOUTH: 27,
-                        Location.WEST: 10,
-                        Location.NORTH: 30,
-                        Location.EAST: 13}
-        lights_permutation = [Location.SOUTH,
-                              Location.WEST,
-                              Location.NORTH,
-                              Location.EAST]
-        self.lights_cycle = self.generate_cycle(
-            lights_times, lights_permutation)
 
     def timer(self, timer_duration):
         current_time = pygame.time.get_ticks()
@@ -81,7 +60,7 @@ class SimulationGraphic:
             x, y = self.lane_to_xy(lane, -2)
             pygame.draw.circle(surface, color, (x, y), 10)
 
-    def yellow_light_loc(self) -> list[Location]:
+    def yellow_light_loc(self) -> list[Direction]:
 
         for i in range(1, 6):
             ret_prev = None
