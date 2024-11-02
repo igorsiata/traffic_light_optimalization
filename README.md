@@ -27,7 +27,7 @@ Optymalizacja przełączania sygnalizacji świetlnej na skrzyżowaniu w celu min
 
 
 ### Funcja celu
-![Równanie](images/equation_minimize.PNG)
+![Równanie](images/equation_minimize.PNG) * czas oczekiwania
 
 ### Uproszczenia:
 * Kierowcy nie popełniają błędów, stosują się do zasad ruchu drogowego
@@ -43,3 +43,10 @@ Wykorzystanie danych o bieżącym natężeniu ruchu (np. z systemów wizyjnych, 
 ## Model skrzyżowania
 Na przykładzie tego skrzyżowania będzie przeprowadzana optymalizacja, jednak celem będzię możliwie jak najbardziej uogólnić model aby miał zastosowania również do innych skrzyżowań.  
 <img alt="Obraz skrzyżowania" src="images/crossroad.jpg" width=50% height=50%>
+
+
+# konfiguracja
+do settings.json dodać:
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "${workspaceFolder}"
+    }
