@@ -1,30 +1,37 @@
 import pygame
 from pygame.locals import *
 from simulation import *
+from scripts.optimalization.simulated_annealing import *
 import os
+import numpy as np
 
 
 class SimulationGraphic:
-    def __init__(self) -> None:
-
-        self.lights_cycle = [Direction.SOUTH]*20 + [None] * 5 +\
-            [Direction.WEST]*20 + [None] * 5 +\
-            [Direction.NORTH]*20 + [None] * 5 +\
-            [Direction.EAST]*20 + [None] * 5
+    def __init__(self, lights_cycle) -> None:
+        self.lights_cycle = lights_cycle
         self.step_counter = 0
-        self.simulation: Simulation = Simulation(self.lights_cycle)
+        self.turn_time = 100
+        self.simulation: Simulation = Simulation(self.turn_time)
+        for i, crossroad in enumerate(self.simulation.crossroad_network.crossroad_network):
+            crossroad.lights_cycle = lights_cycle[i]
         self.start_time = pygame.time.get_ticks()
+        self.crossroad_to_xy = {
+            0: (250, 250),
+            1: (550, 250),
+            2: (250, 550),
+            3: (550, 550)
+        }
         self.lane_to_xy_map = {
-            Direction.EAST: (500, 363),
-            Direction.WEST: (295, 438),
-            Direction.NORTH: (360, 295),
-            Direction.SOUTH: (435, 505)
+            Direction.EAST: (40, -25),
+            Direction.WEST: (-40, 25),
+            Direction.NORTH: (-25, -40),
+            Direction.SOUTH: (25, 40)
         }
         self.lane_dxy_map = {
-            Direction.EAST: (20, 0),
-            Direction.WEST: (-20, 0),
-            Direction.NORTH: (0, -20),
-            Direction.SOUTH: (0, 20)
+            Direction.EAST: (12, 0),
+            Direction.WEST: (-12, 0),
+            Direction.NORTH: (0, -12),
+            Direction.SOUTH: (0, 12)
         }
 
     def timer(self, timer_duration):
@@ -34,44 +41,34 @@ class SimulationGraphic:
             self.start_time = pygame.time.get_ticks()
             self.simulation.step(self.step_counter)
             self.step_counter = (self.step_counter +
-                                 1) % len(self.lights_cycle)
+                                 1) % self.turn_time
 
-    def lane_to_xy(self, lane: Lane, i: int):
-        base_xy = self.lane_to_xy_map[lane.location]
-        d_xy = self.lane_dxy_map[lane.location]
-        xy_cords = (base_xy[0] + d_xy[0]*i, base_xy[1] + d_xy[1] * i)
+    def lane_to_xy(self, crossroad_id: int, lane_direction: Direction, i: int):
+        crossroad_xy = self.crossroad_to_xy[crossroad_id]
+        base_xy = self.lane_to_xy_map[lane_direction]
+        d_xy = self.lane_dxy_map[lane_direction]
+        d_xy = (d_xy[0]*i, d_xy[1]*i)
+        xy_cords = tuple(np.add(np.add(crossroad_xy, base_xy), d_xy))
         return xy_cords
 
     def render_cars(self, surface) -> None:
-        for lane in self.simulation.crossroad.in_lanes:
-            for i, car in enumerate(lane.queue):
-                pygame.draw.circle(surface, (0, 0, 255),
-                                   self.lane_to_xy(lane, i), 10)
+        for c_id, crossroad in enumerate(self.simulation.crossroad_network.crossroad_network):
+            for direction, in_lane in crossroad.in_lanes.items():
+                for i, car in enumerate(in_lane.queue):
+                    pygame.draw.circle(surface, "lightblue",
+                                       self.lane_to_xy(c_id, direction, i+2), 6)
 
     def render_lights(self, surface) -> None:
-        now_green_light = self.simulation.crossroad.lights_cycle[self.step_counter]
-
-        for lane in self.simulation.crossroad.in_lanes:
-            color = "green" if lane.location == now_green_light else "red"
-            if now_green_light == None:
-                now_yellow_light = self.yellow_light_loc()
-                color = "yellow" if lane.location in now_yellow_light else "red"
-
-            x, y = self.lane_to_xy(lane, -2)
-            pygame.draw.circle(surface, color, (x, y), 10)
-
-    def yellow_light_loc(self) -> list[Direction]:
-
-        for i in range(1, 6):
-            ret_prev = None
-            ret_next = None
-            prev_light = self.step_counter - i
-            next_light = (self.step_counter + i) % len(self.lights_cycle)
-            if self.lights_cycle[prev_light] != None and not ret_prev:
-                ret_prev = self.lights_cycle[prev_light]
-            if self.lights_cycle[next_light] != None and not ret_next:
-                ret_next = self.lights_cycle[next_light]
-        return ret_prev, ret_next
+        for c_id in range(4):
+            for direction in list(Direction):
+                if self.lights_cycle[c_id][self.step_counter] == None:
+                    color = "yellow"
+                elif self.lights_cycle[c_id][self.step_counter] == direction:
+                    color = "green"
+                else:
+                    color = "red"
+                pygame.draw.circle(surface, color,
+                                   self.lane_to_xy(c_id, direction, 0), 10)
 
 
 class App:
@@ -81,7 +78,7 @@ class App:
         self.size = self.weight, self.height = 800, 800
         self.FPS = 60
         self.FramePerSec = pygame.time.Clock()
-        self.simulation_graphics = SimulationGraphic()
+        self.simulation_graphics: SimulationGraphic
 
     def on_init(self):
         pygame.init()
@@ -89,7 +86,7 @@ class App:
             self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
 
         self.background_image = pygame.image.load(
-            "images\\crossroad_one_lane.jpg")
+            "images\\4waycrossroad.jpg")
         self._running = True
         return self._display_surf is not None
 
@@ -98,7 +95,7 @@ class App:
             self._running = False
 
     def on_loop(self):
-        self.simulation_graphics.timer(100)
+        self.simulation_graphics.timer(200)
 
     def on_render(self):
         self._display_surf.blit(self.background_image, (0, 0))
@@ -123,5 +120,8 @@ class App:
 
 
 if __name__ == "__main__":
+    optimaliztion = SimulatedAnnealing()
+    cycle = optimaliztion.run()
     theApp = App()
+    theApp.simulation_graphics = SimulationGraphic(cycle)
     theApp.on_execute()
