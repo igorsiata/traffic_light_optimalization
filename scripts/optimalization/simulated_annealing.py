@@ -2,6 +2,7 @@ from scripts.simulation.simulation import *
 import random
 import numpy as np
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
 class SimulatedAnnealing:
@@ -28,7 +29,7 @@ class SimulatedAnnealing:
         self.lights_cycle: \
             List[Crossroad.LightsCycle] = self.generate_cycle(self.lights_times,
                                                               self.lights_permutation)
-        self.simulation = Simulation(100, 20)
+        self.simulation = Simulation(100, 10)
 
     def fitness(self, lights_cycle: List[Crossroad.LightsCycle]) -> int:
         """
@@ -42,7 +43,7 @@ class SimulatedAnnealing:
         """
         for i, crossroad in enumerate(self.simulation.crossroad_network.crossroad_network):
             crossroad.lights_cycle = lights_cycle[i]
-        return self.simulation.run()/100000
+        return self.simulation.run()
 
     def neigbour(self) -> LightsTimes:
         """
@@ -57,7 +58,7 @@ class SimulatedAnnealing:
         add_to = random.choice(direction_list)
         direction_list.remove(add_to)
         remove_from = random.choice(direction_list)
-        if new_light_times[crossroad_id][remove_from] <= 0:
+        if new_light_times[crossroad_id][remove_from] <= 2:
             return self.neigbour()
         new_light_times[crossroad_id][add_to] += 1
         new_light_times[crossroad_id][remove_from] -= 1
@@ -93,9 +94,12 @@ class SimulatedAnnealing:
         Returns:
             List[Crossroad.LightsCycle]: _description_
         """
+
         lowest_score = self.fitness(self.lights_cycle)
-        temperature = 1
-        alfa = 0.996
+        temperature = 1000000
+        score_lst = [lowest_score]
+        temperature_lst = [temperature]
+        alfa = 0.98
         while temperature > 0.0001:
             new_lights_times = self.neigbour()
             new_lights_cycle = self.generate_cycle(
@@ -103,14 +107,17 @@ class SimulatedAnnealing:
             new_score = self.fitness(new_lights_cycle)
             difference = new_score - lowest_score
             r = random.random()
-            p = np.exp(-difference/temperature)
+            p = np.exp((-difference)/temperature)
             if difference < 0 or r < p:
                 lowest_score = new_score
                 self.lights_cycle = new_lights_cycle
                 self.lights_times = new_lights_times
-
+            score_lst.append(lowest_score)
+            temperature_lst.append(temperature)
             temperature *= alfa
         print(self.lights_times)
+        plt.plot(temperature_lst, score_lst)
+        plt.show()
         return self.lights_cycle
 
 
