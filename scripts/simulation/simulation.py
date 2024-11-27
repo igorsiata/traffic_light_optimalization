@@ -67,9 +67,9 @@ class Car:
             List[Direction]: list of directions at crossroads
         """
         if self.origin[0] == self.destination[0]:
-            return [self.destination[1]]
+            return []
         else:
-            return self.dest_to_path_map[(self.origin[0], self.destination[0])]
+            return self.dest_to_path_map[(self.origin[0], self.destination[0])][:]
 
     def move(self) -> None:
         self.path.pop(0)
@@ -148,20 +148,22 @@ class Crossroad:
             int: score for this step
         """
         score = 0
-        turn_itr = 0
         for cycle in self.lights_cycle:
             if cycle[1] >= turn:
+                green_light_now = cycle[0]
                 break
-
-        green_light_now = self.lights_cycle[turn_itr][0]
+        else:
+            green_light_now = None
         # if yellow light reset all counters
+
         if green_light_now == None:
             self.reset_lights_counters()
         else:
             # process cars in lane with green lights
             processed_car = self.in_lanes[green_light_now].process_cars()
-            if processed_car is not None:
+            if processed_car is not None and processed_car.path != []:
                 self.out_lanes[processed_car.path[0]].add_car(processed_car)
+                processed_car.move()
 
         for in_lane in self.in_lanes.values():
             for car in in_lane.queue:
@@ -278,6 +280,8 @@ class Simulation:
         Returns:
             int: score
         """
+        for crossroad in self.crossroad_network.crossroad_network:
+            crossroad.reset_queues()
         for i, crossroad in enumerate(self.crossroad_network.crossroad_network):
             crossroad.lights_times = solution[i][0]
             crossroad.lights_order = solution[i][1]
@@ -285,14 +289,19 @@ class Simulation:
         score = 0
         for _ in range(self.cycles):
             for t in range(self.turn_time):
-
-                self.add_car(self.car_adder[t])
+                if not t % 4:
+                    self.add_car(self.car_adder[t][0], self.car_adder[t][1])
                 for crossroad in self.crossroad_network.crossroad_network:
                     score += crossroad.step(t)
+        return score
 
+    def init_corssroad_params(self, solution):
         for crossroad in self.crossroad_network.crossroad_network:
             crossroad.reset_queues()
-        return score
+        for i, crossroad in enumerate(self.crossroad_network.crossroad_network):
+            crossroad.lights_times = solution[i][0]
+            crossroad.lights_order = solution[i][1]
+            crossroad.lights_cycle = crossroad.generate_cycle()
 
     def step(self, t: int) -> None:
         """
@@ -302,15 +311,15 @@ class Simulation:
             t (int): Turn in simulation
         """
         if t % 2:
-            self.add_car()
+            self.add_car(self.car_adder[t][0], self.car_adder[t][1])
         for crossroad in self.crossroad_network.crossroad_network:
             crossroad.step(t)
 
-    def add_car(self, car):
+    def add_car(self, car_origin, car_destination):
         """
         Generates cars from outside world.
         """
-
+        car = Car(car_origin, car_destination)
         self.crossroad_network.crossroad_network[car.origin[0]].\
             in_lanes[car.origin[1]].add_car(car)
 
@@ -322,17 +331,43 @@ class Simulation:
         cars = []
         for _ in range(self.turn_time):
             car_origin = random.choices(possible_origins,
-                                        weights=[4, 1,
-                                                 1, 1,
-                                                 1, 1,
-                                                 1, 1],
+                                        weights=[1, 0,
+                                                 0, 0,
+                                                 0, 0,
+                                                 0, 0],
                                         k=1)[0]
             car_destination = random.choices(possible_origins,
-                                             weights=[1, 1,
-                                                      2, 1,
-                                                      1, 3,
-                                                      1, 1],
+                                             weights=[0, 0,
+                                                      0, 0,
+                                                      0, 0,
+                                                      0, 1],
                                              k=1)[0]
-            car_to_add = Car(car_origin, car_destination)
-            cars.append(car_to_add)
+            cars.append((car_origin, car_destination))
         return cars
+
+
+if __name__ == "__main__":
+
+    sim = Simulation()
+    sol = [
+        [{Direction.SOUTH: 19.06458605473439, Direction.WEST: 23.081563712730155, Direction.NORTH: 38.80217131417088, Direction.EAST: 19.051678918364573},
+            [Direction.NORTH, Direction.WEST, Direction.SOUTH, Direction.EAST]],
+        [{Direction.SOUTH: 31.190325357371858, Direction.WEST: 30.637419871559267, Direction.NORTH: 25.585222426325853, Direction.EAST: 12.587032344743015},
+            [Direction.SOUTH, Direction.WEST, Direction.NORTH, Direction.EAST]],
+        [{Direction.SOUTH: 26.1720845381231, Direction.WEST: 10.811284569600645, Direction.NORTH: 28.352282624239628, Direction.EAST: 34.664348268036626},
+         [Direction.NORTH, Direction.EAST, Direction.WEST, Direction.SOUTH]],
+        [{Direction.SOUTH: 27.094910679245277, Direction.WEST: 34.359840417504984, Direction.NORTH: 11.028910009813483, Direction.EAST: 27.516338893436256},
+            [Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST]]
+    ]
+    sol2 = [
+        [{Direction.SOUTH: 9.06458605473439, Direction.WEST: 53.081563712730155, Direction.NORTH: 18.80217131417088, Direction.EAST: 19.051678918364573},
+            [Direction.NORTH, Direction.WEST, Direction.SOUTH, Direction.EAST]],
+        [{Direction.SOUTH: 31.190325357371858, Direction.WEST: 30.637419871559267, Direction.NORTH: 25.585222426325853, Direction.EAST: 12.587032344743015},
+            [Direction.SOUTH, Direction.WEST, Direction.NORTH, Direction.EAST]],
+        [{Direction.SOUTH: 26.1720845381231, Direction.WEST: 10.811284569600645, Direction.NORTH: 28.352282624239628, Direction.EAST: 34.664348268036626},
+         [Direction.NORTH, Direction.EAST, Direction.WEST, Direction.SOUTH]],
+        [{Direction.SOUTH: 27.094910679245277, Direction.WEST: 34.359840417504984, Direction.NORTH: 11.028910009813483, Direction.EAST: 27.516338893436256},
+            [Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST]]
+    ]
+    print(sim.run(sol))
+    print(sim.run(sol2))

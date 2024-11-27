@@ -1,7 +1,8 @@
 import pygame
 from pygame.locals import *
 from simulation import *
-from scripts.optimalization.simulated_annealing import *
+# from scripts.optimalization.simulated_annealing import *
+from scripts.optimalization.genetic_algorithm import *
 import os
 import numpy as np
 
@@ -12,8 +13,7 @@ class SimulationGraphic:
         self.step_counter = 0
         self.turn_time = 100
         self.simulation: Simulation = Simulation(self.turn_time)
-        for i, crossroad in enumerate(self.simulation.crossroad_network.crossroad_network):
-            crossroad.lights_cycle = lights_cycle[i]
+        self.simulation.init_corssroad_params(lights_cycle)
         self.start_time = pygame.time.get_ticks()
         self.crossroad_to_xy = {
             0: (250, 250),
@@ -55,15 +55,21 @@ class SimulationGraphic:
         for c_id, crossroad in enumerate(self.simulation.crossroad_network.crossroad_network):
             for direction, in_lane in crossroad.in_lanes.items():
                 for i, car in enumerate(in_lane.queue):
+                    # print(c_id, direction)
                     pygame.draw.circle(surface, "lightblue",
                                        self.lane_to_xy(c_id, direction, i+2), 6)
 
     def render_lights(self, surface) -> None:
-        for c_id in range(4):
+        for c_id, crossroad in enumerate(
+                self.simulation.crossroad_network.crossroad_network):
+            for cycle in crossroad.lights_cycle:
+                if cycle[1] >= self.step_counter:
+                    green_light_now = cycle[0]
+                    break
             for direction in list(Direction):
-                if self.lights_cycle[c_id][self.step_counter] == None:
+                if green_light_now == None:
                     color = "yellow"
-                elif self.lights_cycle[c_id][self.step_counter] == direction:
+                elif green_light_now == direction:
                     color = "green"
                 else:
                     color = "red"
@@ -95,7 +101,7 @@ class App:
             self._running = False
 
     def on_loop(self):
-        self.simulation_graphics.timer(200)
+        self.simulation_graphics.timer(100)
 
     def on_render(self):
         self._display_surf.blit(self.background_image, (0, 0))
@@ -120,8 +126,11 @@ class App:
 
 
 if __name__ == "__main__":
-    optimaliztion = SimulatedAnnealing()
-    cycle = optimaliztion.run()
+
+    traffic_opt = TrafficLightsOptGentetic()
+    opt = traffic_opt.genetic_algorthm.run_evolution(50, 0.1)
+    cycle = opt[0]
+    print(opt)
     theApp = App()
     theApp.simulation_graphics = SimulationGraphic(cycle)
     theApp.on_execute()

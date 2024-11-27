@@ -53,6 +53,7 @@ class GeneticAlgorithm:
             raise ValueError("Elitism percentage must be in range [0,1.0)")
         elite_solutions_weights = sorted_solutions[:int(
             floor(percentage*len(sorted_solutions)))]
+
         if not elite_solutions_weights:
             return []
         elite_solutions, _ = zip(*elite_solutions_weights)
@@ -60,9 +61,9 @@ class GeneticAlgorithm:
         return list(elite_solutions)
 
     def run_evolution(self, generations: int, elitism_perc: float = 0.0) -> Genome:
-        solutions = self.generate_solutions()
+        newGeneration = self.generate_solutions()
         for i in range(generations):
-            sorted_solutions = self.sort_solutions(solutions)
+            sorted_solutions = self.sort_solutions(newGeneration[:self.size])
             newGeneration = self.elite_solutions(
                 sorted_solutions, elitism_perc)
             while (len(newGeneration) < self.size):
@@ -71,9 +72,6 @@ class GeneticAlgorithm:
                 for child in children:
                     self.mutation(child)
                     newGeneration += [child]
-            if len(newGeneration) > self.size:
-                newGeneration = newGeneration[:-1]
-            solutions = newGeneration
             print(f"generation {i} best solution: {sorted_solutions[0][1]}")
         return self.sort_solutions(newGeneration)[0]
 
@@ -89,7 +87,7 @@ class TrafficLightsOptGentetic:
         # this can be converted to lights_cycle (List[Direction])
         self.simulation = Simulation(turn_time=120, cycles=5)
         self.genetic_algorthm = GeneticAlgorithm(
-            population_size=400,
+            population_size=100,
             generate_genome=self.generate_genome,
             fitness=self.fitness,
             mutation=self.mutation,
@@ -122,9 +120,13 @@ class TrafficLightsOptGentetic:
         Returns:
             None
         """
-        sum_times = sum(lights_times.values())
         for direction in lights_times.keys():
-            lights_times[direction] = lights_times[direction]/sum_times * 100
+            lights_times[direction] = max(5, lights_times[direction])
+        sum_times = sum(lights_times.values())
+
+        for direction in lights_times.keys():
+            lights_times[direction] = lights_times[direction] / \
+                sum_times * 100
 
     def fitness(self, genome) -> int:
         """
@@ -136,7 +138,7 @@ class TrafficLightsOptGentetic:
         Returns:
             int: score
         """
-        return 1/self.simulation.run(genome) * 10000000
+        return 100000000/self.simulation.run(genome)
 
     def mutation(self, genome) -> None:
         """
@@ -151,10 +153,15 @@ class TrafficLightsOptGentetic:
             i = random.randint(0, 3)
             s1, s2 = random.randint(0, 3), random.randint(0, 3)
             genome[i][1][s1], genome[i][1][s2] = genome[i][1][s2], genome[i][1][s1]
+        else:
+            i = random.randint(0, 3)
+            for dir in genome[i][0].keys():
+                genome[i][0][dir] += random.gauss()*20
+                self.normalize(genome[i][0])
         pass
 
     def crossover(self, parent1, parent2):
-        alpha_lst = [0.5, -0.5, 1.5]
+        alpha_lst = [-0.5, 1.5]
         children = []
         for alpha in alpha_lst:
             child = []
@@ -165,11 +172,13 @@ class TrafficLightsOptGentetic:
                     Direction.NORTH: parent1[i][0][Direction.NORTH]*(alpha) + parent2[i][0][Direction.NORTH]*(alpha),
                     Direction.EAST: parent1[i][0][Direction.EAST]*(alpha) + parent2[i][0][Direction.EAST]*(alpha),
                 }
-                child.append([child_light_times, parent1[i][1][:]])
+                self.normalize(child_light_times)
+                child.append([child_light_times, deepcopy(parent1[i][1])])
             children.append(child)
         return children
 
 
 if __name__ == "__main__":
     traffic_opt = TrafficLightsOptGentetic()
-    traffic_opt.genetic_algorthm.run_evolution(500, 0.1)
+    opt = traffic_opt.genetic_algorthm.run_evolution(200, 0.1)
+    print(opt)
