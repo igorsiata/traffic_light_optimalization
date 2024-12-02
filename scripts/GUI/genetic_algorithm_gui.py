@@ -1,7 +1,7 @@
 import random
 from typing import List, Tuple, Callable
 from math import floor
-from simulation import *
+from scripts.simulation.simulation import *
 from copy import deepcopy
 
 
@@ -75,7 +75,7 @@ class GeneticAlgorithm:
             print(f"generation {i} best solution: {sorted_solutions[0][1]}")
         return self.sort_solutions(newGeneration)[0]
     
-    def run_evolution_gui(self, generations: int, elitism_perc: float, update_progress: Callable[[int, float], None]) -> Tuple[Genome, List[float]]:
+    def run_evolution_gui(self, generations: int, elitism_perc: float, update_progress: Callable[[int, float], None]) -> Tuple[List[Tuple[Dict[Direction, float], List[Direction]]], List[float]]:
         """
         Przystosowana funkcja run_evolution do GUI.
         
@@ -85,7 +85,7 @@ class GeneticAlgorithm:
             update_progress (Callable): Funkcja aktualizująca pasek postępu.
 
         Returns:
-            Tuple: Najlepszy genom i lista wartości fitness z każdej generacji.
+            Tuple: Najlepszy genom (z czasami i kolejnością świateł) i lista wartości fitness z każdej generacji.
         """
         population = self.generate_solutions()
         best_fitness_per_gen = []
@@ -108,7 +108,11 @@ class GeneticAlgorithm:
             # Aktualizacja paska postępu w GUI
             update_progress(generation + 1, best_fitness_per_gen[-1])
 
-        return sorted_population[0], best_fitness_per_gen
+        # Przekształcenie najlepszego rozwiązania w odpowiedni format
+        best_solution_raw = sorted_population[0][0]  # Najlepszy genom
+        best_solution = [(crossroad[0], crossroad[1]) for crossroad in best_solution_raw]
+
+        return best_solution, best_fitness_per_gen
 
 
 

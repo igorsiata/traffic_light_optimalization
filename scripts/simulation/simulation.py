@@ -322,6 +322,7 @@ class Simulation:
         car = Car(car_origin, car_destination)
         self.crossroad_network.crossroad_network[car.origin[0]].\
             in_lanes[car.origin[1]].add_car(car)
+        
 
     def generate_add_car_lst(self):
         possible_origins = [(0, Direction.WEST), (0, Direction.NORTH),
@@ -331,19 +332,22 @@ class Simulation:
         cars = []
         for _ in range(self.turn_time):
             car_origin = random.choices(possible_origins,
-                                        weights=[1, 0,
-                                                 0, 0,
-                                                 0, 0,
-                                                 0, 0],
+                                        weights=[1, 1,
+                                                 1, 1,
+                                                 1, 1,
+                                                 1, 1],
                                         k=1)[0]
             car_destination = random.choices(possible_origins,
-                                             weights=[0, 0,
-                                                      0, 0,
-                                                      0, 0,
-                                                      0, 1],
+                                             weights=[1, 1,
+                                                      1, 1,
+                                                      1, 1,
+                                                      1, 1],
                                              k=1)[0]
             cars.append((car_origin, car_destination))
         return cars
+
+
+
 
 
 if __name__ == "__main__":

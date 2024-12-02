@@ -1,6 +1,6 @@
 import pygame
 from pygame.locals import *
-from simulation import *
+from scripts.simulation.simulation import *
 # from scripts.optimalization.simulated_annealing import *
 from scripts.optimalization.genetic_algorithm import *
 import os
@@ -98,7 +98,9 @@ class App:
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
-            self._running = False
+            self._running = False  # Zatrzymuje pętlę Pygame
+
+
 
     def on_loop(self):
         self.simulation_graphics.timer(100)
@@ -110,19 +112,20 @@ class App:
         pygame.display.flip()
 
     def on_cleanup(self):
-        pygame.quit()
+        pygame.quit()  # Zamyka tylko zasoby Pygame
 
     def on_execute(self):
-        if self.on_init() == False:
+        if not self.on_init():
             self._running = False
 
-        while (self._running):
+        while self._running:
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
             self.on_render()
             self.FramePerSec.tick(self.FPS)
-        self.on_cleanup()
+        self.on_cleanup()  # Wyczyść zasoby na końcu
+
 
 
 if __name__ == "__main__":
