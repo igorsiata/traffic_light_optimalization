@@ -5,6 +5,11 @@ from scripts.simulation.simulation import *
 from copy import deepcopy
 
 
+class Control:
+    def __init__(self):
+        self.stop = False
+
+
 class GeneticAlgorithm:
     Genome = List[List[Crossroad.LightsTimes]]
     Population = List[Genome]
@@ -18,12 +23,14 @@ class GeneticAlgorithm:
                  generate_genome: GenomeFunc,
                  fitness: FitnessFunc,
                  mutation: MutationFunc,
-                 crossover: CrossoverFunc) -> None:
+                 crossover: CrossoverFunc,
+                 control: Control) -> None:
         self.size = population_size
         self.generate_genome = generate_genome
         self.fitness = fitness
         self.mutation = mutation
         self.crossover = crossover
+        self.control = control
 
     def generate_solutions(self) -> Population:
         return [self.generate_genome() for _ in range(self.size)]
@@ -75,7 +82,11 @@ class GeneticAlgorithm:
             print(f"generation {i} best solution: {sorted_solutions[0][1]}")
         return self.sort_solutions(newGeneration)[0]
 
-    def run_evolution_gui(self, generations: int, elitism_perc: float, update_progress: Callable[[int, float], None]) -> Tuple[List[Tuple[Dict[Direction, float], List[Direction]]], List[float]]:
+    def run_evolution_gui(self,
+                          generations: int,
+                          elitism_perc: float,
+                          update_progress: Callable[[int, float], None]
+                          ) -> Tuple[List[Tuple[Dict[Direction, float], List[Direction]]], List[float]]:
         """
         Przystosowana funkcja run_evolution do GUI.
 
@@ -89,13 +100,11 @@ class GeneticAlgorithm:
         """
         population = self.generate_solutions()
         best_fitness_per_gen = []
-
         for generation in range(generations):
             sorted_population = self.sort_solutions(population)
             # Dodaj najlepszą wartość fitness do listy
             best_fitness_per_gen.append(sorted_population[0][1])
             elite = self.elite_solutions(sorted_population, elitism_perc)
-
             next_generation = list(elite)
             while len(next_generation) < self.size:
                 parent1, parent2 = self.selection(sorted_population)
@@ -103,17 +112,19 @@ class GeneticAlgorithm:
                 for child in children:
                     self.mutation(child)
                     next_generation.append(child)
-
             population = next_generation[:self.size]
-
             # Aktualizacja paska postępu w GUI
             update_progress(generation + 1, best_fitness_per_gen[-1])
+            if self.control.stop == True:
+                best_solution_raw = sorted_population[0][0]  # Najlepszy genom
+                best_solution = [(crossroad[0], crossroad[1])
+                                 for crossroad in best_solution_raw]
+                return best_solution, best_fitness_per_gen
 
         # Przekształcenie najlepszego rozwiązania w odpowiedni format
         best_solution_raw = sorted_population[0][0]  # Najlepszy genom
         best_solution = [(crossroad[0], crossroad[1])
                          for crossroad in best_solution_raw]
-
         return best_solution, best_fitness_per_gen
 
 
@@ -122,6 +133,7 @@ class TrafficLightsOptGentetic:
     type LightsPermutation = List[List[Direction]]
 
     def __init__(self,
+                 control: Control,
                  population_size=100,
                  mutation_prob=0.5,
                  crossover_type="linear",
@@ -131,7 +143,8 @@ class TrafficLightsOptGentetic:
         # list of times for each direction and
         # list of permutations specifying order of lights
         # this can be converted to lights_cycle (List[Direction])
-        self.simulation = Simulation(turn_time=120, cycles=cycles)
+        self.simulation = Simulation(
+            turn_time=120, cycles=cycles)
         self.crossover_type = crossover_type
         self.scale_score = self.simulation.run(self.generate_genome())
         # Mapowanie nazw na odpowiednie funkcje
@@ -140,6 +153,7 @@ class TrafficLightsOptGentetic:
             "linear": lambda p1, p2: self.linear_crossover(p1, p2, crossover_alpha)
         }
         self.genetic_algorthm = GeneticAlgorithm(
+            control=control,
             population_size=population_size,
             generate_genome=self.generate_genome,
             fitness=self.fitness,

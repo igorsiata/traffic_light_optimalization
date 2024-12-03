@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import threading
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from scripts.optimalization.genetic_algorithm import TrafficLightsOptGentetic
+from scripts.optimalization.genetic_algorithm import TrafficLightsOptGentetic, Control
 from scripts.simulation.graphics import App, SimulationGraphic
 import pygame
 
@@ -50,7 +50,7 @@ class GUI:
         self.crossover_type_combo.set("blx")
         self.crossover_type_combo.grid(row=4, column=1)
 
-        ttk.Label(frame, text="Alpha (dla PMX i linear):").grid(
+        ttk.Label(frame, text="Alpha (dla BLX i linear):").grid(
             row=5, column=0, sticky=tk.W)
         self.alpha_entry = ttk.Entry(frame)
         self.alpha_entry.insert(0, "1.5")
@@ -68,9 +68,11 @@ class GUI:
         self.progress_bar.grid(row=7, column=0, columnspan=2, pady=10)
 
         # Przycisk uruchamiający algorytm
-        ttk.Button(frame, text="Uruchom algorytm", command=self.start_algorithm).grid(
+        self.run_button = ttk.Button(
+            frame, text="Uruchom algorytm", command=self.start_algorithm)
+        self.run_button.grid(
             row=8, column=0, columnspan=2, pady=10)
-
+        self.control = Control()
         # Obsługa zamykania okna
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -79,8 +81,9 @@ class GUI:
 
     def run_genetic_algorithm(self, population_size, generations, elitism_perc, mutation_prob, crossover_type, alpha, cycles, progress_bar):
         """ Uruchamia algorytm genetyczny i aktualizuje GUI w głównym wątku. """
-
+        self.control.stop = False
         traffic_opt = TrafficLightsOptGentetic(
+            control=self.control,
             population_size=population_size,
             mutation_prob=mutation_prob,
             crossover_type=crossover_type,
@@ -198,8 +201,16 @@ class GUI:
                 mutation_prob, crossover_type, alpha, cycles, self.progress_bar
             )
 
+            # Comment line below if you want to run multiple algorithms
+            self.run_button.config(text="Anuluj", command=self.stop_algorithm)
+
         except ValueError as e:
             messagebox.showerror("Błąd", str(e))
+
+    def stop_algorithm(self):
+        self.control.stop = True
+        self.run_button.config(text="Uruchom algorytm",
+                               command=self.start_algorithm)
 
     def on_close(self):
         """Zamyka wszystkie zasoby i kończy aplikację."""
