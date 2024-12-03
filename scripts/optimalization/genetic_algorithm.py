@@ -75,27 +75,80 @@ class GeneticAlgorithm:
             print(f"generation {i} best solution: {sorted_solutions[0][1]}")
         return self.sort_solutions(newGeneration)[0]
 
+    def run_evolution_gui(self, generations: int, elitism_perc: float, update_progress: Callable[[int, float], None]) -> Tuple[List[Tuple[Dict[Direction, float], List[Direction]]], List[float]]:
+        """
+        Przystosowana funkcja run_evolution do GUI.
+
+        Args:
+            generations (int): Liczba generacji.
+            elitism_perc (float): Procent elityzmu.
+            update_progress (Callable): Funkcja aktualizująca pasek postępu.
+
+        Returns:
+            Tuple: Najlepszy genom (z czasami i kolejnością świateł) i lista wartości fitness z każdej generacji.
+        """
+        population = self.generate_solutions()
+        best_fitness_per_gen = []
+
+        for generation in range(generations):
+            sorted_population = self.sort_solutions(population)
+            # Dodaj najlepszą wartość fitness do listy
+            best_fitness_per_gen.append(sorted_population[0][1])
+            elite = self.elite_solutions(sorted_population, elitism_perc)
+
+            next_generation = list(elite)
+            while len(next_generation) < self.size:
+                parent1, parent2 = self.selection(sorted_population)
+                children = self.crossover(parent1, parent2)
+                for child in children:
+                    self.mutation(child)
+                    next_generation.append(child)
+
+            population = next_generation[:self.size]
+
+            # Aktualizacja paska postępu w GUI
+            update_progress(generation + 1, best_fitness_per_gen[-1])
+
+        # Przekształcenie najlepszego rozwiązania w odpowiedni format
+        best_solution_raw = sorted_population[0][0]  # Najlepszy genom
+        best_solution = [(crossroad[0], crossroad[1])
+                         for crossroad in best_solution_raw]
+
+        return best_solution, best_fitness_per_gen
+
 
 class TrafficLightsOptGentetic:
     type LightsTimes = List[Dict[Direction, int]]
     type LightsPermutation = List[List[Direction]]
 
-    def __init__(self) -> None:
+    def __init__(self,
+                 population_size=100,
+                 mutation_prob=0.5,
+                 crossover_type="linear",
+                 crossover_alpha=1.0,
+                 cycles=5) -> None:
         # To find neighbour easly light cycle can be represented as
         # list of times for each direction and
         # list of permutations specifying order of lights
         # this can be converted to lights_cycle (List[Direction])
-        self.simulation = Simulation(turn_time=120, cycles=5)
+        self.simulation = Simulation(turn_time=120, cycles=cycles)
+        self.crossover_type = crossover_type
+        self.scale_score = self.simulation.run(self.generate_genome())
+        # Mapowanie nazw na odpowiednie funkcje
+        crossover_funcs = {
+            "blx": lambda p1, p2: self.blx_alpha_crossover(p1, p2, crossover_alpha),
+            "linear": lambda p1, p2: self.linear_crossover(p1, p2, crossover_alpha)
+        }
         self.genetic_algorthm = GeneticAlgorithm(
-            population_size=100,
+            population_size=population_size,
             generate_genome=self.generate_genome,
             fitness=self.fitness,
-            mutation=self.mutation,
-            crossover=self.crossover
+            mutation=lambda genome: self.mutation(genome, mutation_prob),
+            crossover=crossover_funcs[self.crossover_type]
         )
 
     def generate_genome(self) -> GeneticAlgorithm.Genome:
-        # TODO
+
         genome = []
         for _ in range(4):
             lights_times = {Direction.SOUTH: random.random(),
@@ -138,44 +191,57 @@ class TrafficLightsOptGentetic:
         Returns:
             int: score
         """
-        return 100000000/self.simulation.run(genome)
+        return self.scale_score/self.simulation.run(genome)
 
-    def mutation(self, genome) -> None:
+    def mutation(self, genome, mutation_prob) -> None:
         """
         mutate genome inplace
 
         Returns:
             None
         """
-        r = random.random()
         # Swap permuation
-        if r < 0.5:
+        if random.random() < mutation_prob:
+            # mutate direction order
             i = random.randint(0, 3)
             s1, s2 = random.randint(0, 3), random.randint(0, 3)
             genome[i][1][s1], genome[i][1][s2] = genome[i][1][s2], genome[i][1][s1]
-        else:
+
+            # mutate lights times
             i = random.randint(0, 3)
             for dir in genome[i][0].keys():
-                genome[i][0][dir] += random.gauss()*20
+                genome[i][0][dir] += random.gauss()*4
                 self.normalize(genome[i][0])
         pass
 
-    def crossover(self, parent1, parent2):
-        alpha_lst = [-0.5, 1.5]
-        children = []
-        for alpha in alpha_lst:
-            child = []
-            for i in range(4):
-                child_light_times = {
-                    Direction.SOUTH: parent1[i][0][Direction.SOUTH]*(alpha) + parent2[i][0][Direction.SOUTH]*(alpha),
-                    Direction.WEST: parent1[i][0][Direction.WEST]*(alpha) + parent2[i][0][Direction.WEST]*(alpha),
-                    Direction.NORTH: parent1[i][0][Direction.NORTH]*(alpha) + parent2[i][0][Direction.NORTH]*(alpha),
-                    Direction.EAST: parent1[i][0][Direction.EAST]*(alpha) + parent2[i][0][Direction.EAST]*(alpha),
-                }
-                self.normalize(child_light_times)
-                child.append([child_light_times, deepcopy(parent1[i][1])])
-            children.append(child)
-        return children
+    def blx_alpha_crossover(self, parent1, parent2, alpha) -> Tuple:
+        """ BLX """
+        child1 = deepcopy(parent1)
+        child2 = deepcopy(parent2)
+        for i in range(len(child1)):
+            for direction in child1[i][0]:
+                norm = abs(parent1[i][0][direction] - parent2[i][0][direction])
+                child1[i][0][direction] = min(
+                    parent1[i][0][direction], parent2[i][0][direction]) - alpha*norm
+                child2[i][0][direction] = max(
+                    parent1[i][0][direction], parent2[i][0][direction]) + alpha*norm
+            self.normalize(child1[i][0])
+            self.normalize(child2[i][0])
+
+        return child1, child2
+
+    def linear_crossover(self, parent1, parent2, alpha) -> Tuple:
+        child1 = deepcopy(parent1)
+        child2 = deepcopy(parent2)
+        for i in range(len(child1)):
+            for direction in child1[i][0]:
+                child1[i][0][direction] = alpha * parent1[i][0][direction] + \
+                    (1 - alpha) * parent2[i][0][direction]
+                child2[i][0][direction] = alpha * parent2[i][0][direction] + \
+                    (1 - alpha) * parent1[i][0][direction]
+            self.normalize(child1[i][0])
+            self.normalize(child2[i][0])
+        return child1, child2
 
 
 if __name__ == "__main__":

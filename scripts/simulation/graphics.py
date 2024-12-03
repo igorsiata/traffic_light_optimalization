@@ -11,7 +11,7 @@ class SimulationGraphic:
     def __init__(self, lights_cycle) -> None:
         self.lights_cycle = lights_cycle
         self.step_counter = 0
-        self.turn_time = 100
+        self.turn_time = 120
         self.simulation: Simulation = Simulation(self.turn_time)
         self.simulation.init_corssroad_params(lights_cycle)
         self.start_time = pygame.time.get_ticks()
@@ -100,10 +100,8 @@ class App:
         if event.type == pygame.QUIT:
             self._running = False  # Zatrzymuje pętlę Pygame
 
-
-
     def on_loop(self):
-        self.simulation_graphics.timer(100)
+        self.simulation_graphics.timer(10)
 
     def on_render(self):
         self._display_surf.blit(self.background_image, (0, 0))
@@ -125,7 +123,6 @@ class App:
             self.on_render()
             self.FramePerSec.tick(self.FPS)
         self.on_cleanup()  # Wyczyść zasoby na końcu
-
 
 
 if __name__ == "__main__":

@@ -193,26 +193,26 @@ class Crossroad:
         Initialize crossroad with lanes going into, can change deepending on crossroad.
         """
         self.in_lanes[Direction.SOUTH] = Lane([Turn.LEFT, Turn.FORWARD, Turn.RIGHT],
-                                              processing_time=2)
+                                              processing_time=1)
         self.in_lanes[Direction.WEST] = Lane([Turn.LEFT, Turn.FORWARD, Turn.RIGHT],
-                                             processing_time=2)
+                                             processing_time=1)
         self.in_lanes[Direction.NORTH] = Lane([Turn.LEFT, Turn.FORWARD, Turn.RIGHT],
-                                              processing_time=2)
+                                              processing_time=1)
         self.in_lanes[Direction.EAST] = Lane([Turn.LEFT, Turn.FORWARD, Turn.RIGHT],
-                                             processing_time=2)
+                                             processing_time=1)
 
     def add_out_lanes(self) -> None:
         """
         Initialize crossroad with lanes going out, can change deepending on crossroad.
         """
         self.out_lanes[Direction.SOUTH] = Lane([],
-                                               processing_time=2)
+                                               processing_time=1)
         self.out_lanes[Direction.WEST] = Lane([],
-                                              processing_time=2)
+                                              processing_time=1)
         self.out_lanes[Direction.NORTH] = Lane([],
-                                               processing_time=2)
+                                               processing_time=1)
         self.out_lanes[Direction.EAST] = Lane([],
-                                              processing_time=2)
+                                              processing_time=1)
 
     def reset_queues(self) -> None:
         """
@@ -289,10 +289,22 @@ class Simulation:
         score = 0
         for _ in range(self.cycles):
             for t in range(self.turn_time):
-                if not t % 4:
-                    self.add_car(self.car_adder[t][0], self.car_adder[t][1])
-                for crossroad in self.crossroad_network.crossroad_network:
-                    score += crossroad.step(t)
+                score += self.step(t)
+        return score
+
+    def step(self, t: int) -> None:
+        """
+        Makes step in simulation. Used in graphic representation.
+
+        Args:
+            t (int): Turn in simulation
+        """
+        score = 0
+        if not t % 5:
+            self.add_car(self.car_adder[t + self.cycles % 5][0],
+                         self.car_adder[t + self.cycles % 5][1])
+        for crossroad in self.crossroad_network.crossroad_network:
+            score += crossroad.step(t)
         return score
 
     def init_corssroad_params(self, solution):
@@ -303,18 +315,6 @@ class Simulation:
             crossroad.lights_order = solution[i][1]
             crossroad.lights_cycle = crossroad.generate_cycle()
 
-    def step(self, t: int) -> None:
-        """
-        Makes step in simulation. Used in graphic representation.
-
-        Args:
-            t (int): Turn in simulation
-        """
-        if t % 2:
-            self.add_car(self.car_adder[t][0], self.car_adder[t][1])
-        for crossroad in self.crossroad_network.crossroad_network:
-            crossroad.step(t)
-
     def add_car(self, car_origin, car_destination):
         """
         Generates cars from outside world.
@@ -322,7 +322,6 @@ class Simulation:
         car = Car(car_origin, car_destination)
         self.crossroad_network.crossroad_network[car.origin[0]].\
             in_lanes[car.origin[1]].add_car(car)
-        
 
     def generate_add_car_lst(self):
         possible_origins = [(0, Direction.WEST), (0, Direction.NORTH),
@@ -332,22 +331,19 @@ class Simulation:
         cars = []
         for _ in range(self.turn_time):
             car_origin = random.choices(possible_origins,
-                                        weights=[1, 1,
+                                        weights=[5, 1,
                                                  1, 1,
                                                  1, 1,
                                                  1, 1],
                                         k=1)[0]
             car_destination = random.choices(possible_origins,
-                                             weights=[1, 1,
+                                             weights=[1, 5,
                                                       1, 1,
                                                       1, 1,
                                                       1, 1],
                                              k=1)[0]
             cars.append((car_origin, car_destination))
         return cars
-
-
-
 
 
 if __name__ == "__main__":
