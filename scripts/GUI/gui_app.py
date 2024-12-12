@@ -46,32 +46,39 @@ class GUI:
         ttk.Label(frame, text="Typ crossover:").grid(
             row=4, column=0, sticky=tk.W)
         self.crossover_type_combo = ttk.Combobox(
-            frame, values=["blx", "linear"])
+            frame, values=["blx", "linear"], state="readonly")
         self.crossover_type_combo.set("blx")
         self.crossover_type_combo.grid(row=4, column=1)
 
-        ttk.Label(frame, text="Alpha (dla BLX i linear):").grid(
+        ttk.Label(frame, text="Wybór rodziców:").grid(
             row=5, column=0, sticky=tk.W)
+        self.parent_selection_combo = ttk.Combobox(
+            frame, values=["ranking", "wagowo"], state="readonly")
+        self.parent_selection_combo.set("wagowo")
+        self.parent_selection_combo.grid(row=5, column=1)
+
+        ttk.Label(frame, text="Alpha (dla BLX i linear):").grid(
+            row=6, column=0, sticky=tk.W)
         self.alpha_entry = ttk.Entry(frame)
         self.alpha_entry.insert(0, "1.5")
-        self.alpha_entry.grid(row=5, column=1)
+        self.alpha_entry.grid(row=6, column=1)
 
         ttk.Label(frame, text="Liczba cykli:").grid(
-            row=6, column=0, sticky=tk.W)
+            row=7, column=0, sticky=tk.W)
         self.cycles_entry = ttk.Entry(frame)
         self.cycles_entry.insert(0, "5")
-        self.cycles_entry.grid(row=6, column=1)
+        self.cycles_entry.grid(row=7, column=1)
 
         # Pasek postępu
         self.progress_bar = ttk.Progressbar(
             frame, orient="horizontal", length=200, mode="determinate")
-        self.progress_bar.grid(row=7, column=0, columnspan=2, pady=10)
+        self.progress_bar.grid(row=8, column=0, columnspan=2, pady=10)
 
         # Przycisk uruchamiający algorytm
         self.run_button = ttk.Button(
             frame, text="Uruchom algorytm", command=self.start_algorithm)
         self.run_button.grid(
-            row=8, column=0, columnspan=2, pady=10)
+            row=9, column=0, columnspan=2, pady=10)
         self.control = Control()
         # Obsługa zamykania okna
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -79,7 +86,7 @@ class GUI:
     def run_gui(self):
         self.root.mainloop()
 
-    def run_genetic_algorithm(self, population_size, generations, elitism_perc, mutation_prob, crossover_type, alpha, cycles, progress_bar):
+    def run_genetic_algorithm(self, population_size, generations, elitism_perc, mutation_prob, crossover_type, selection_type, alpha, cycles, progress_bar):
         """ Uruchamia algorytm genetyczny i aktualizuje GUI w głównym wątku. """
         self.control.stop = False
         traffic_opt = TrafficLightsOptGentetic(
@@ -87,6 +94,7 @@ class GUI:
             population_size=population_size,
             mutation_prob=mutation_prob,
             crossover_type=crossover_type,
+            selection_type=selection_type,
             crossover_alpha=alpha,
             cycles=cycles
         )
@@ -104,12 +112,12 @@ class GUI:
             )
             # Po zakończeniu uruchamiania algorytmu wyświetlamy wyniki
             self.root.after(0, lambda: self.finalize_results(
-                best_solution, fitness_history, traffic_opt))
+                best_solution, fitness_history, traffic_opt, population_size))
 
         # Uruchamiamy algorytm w nowym wątku
         threading.Thread(target=run_algorithm_inner, daemon=True).start()
 
-    def finalize_results(self, best_solution, fitness_history, traffic_opt):
+    def finalize_results(self, best_solution, fitness_history, traffic_opt, population_size):
         """ Wyświetla szczegóły najlepszego rozwiązania, wykres fitness i przycisk do uruchomienia symulacji. """
         # Tworzenie nowego okna
         result_window = tk.Toplevel()
@@ -158,10 +166,12 @@ class GUI:
         start_button.pack(side=tk.BOTTOM, pady=10)
 
         # Dodanie wykresu do panelu
+        x_values = [i*population_size for i in range(len(fitness_history))]
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.plot(fitness_history, marker='o', linestyle='-', color='b')
+        ax.plot(x_values, fitness_history,
+                marker='o', linestyle='-', color='b')
         ax.set_title("Postęp optymalizacji")
-        ax.set_xlabel("Generacja")
+        ax.set_xlabel("Generacja * Rozmiar populacji")
         ax.set_ylabel("Fitness")
         ax.grid(True)
 
@@ -187,6 +197,7 @@ class GUI:
             elitism_perc = float(self.elitism_entry.get())
             mutation_prob = float(self.mutation_entry.get())
             crossover_type = self.crossover_type_combo.get()
+            selection_type = self.parent_selection_combo.get()
             alpha = float(self.alpha_entry.get())
             cycles = int(self.cycles_entry.get())
 
@@ -198,7 +209,7 @@ class GUI:
 
             self.run_genetic_algorithm(
                 population_size, generations, elitism_perc,
-                mutation_prob, crossover_type, alpha, cycles, self.progress_bar
+                mutation_prob, crossover_type, selection_type, alpha, cycles, self.progress_bar
             )
 
             # Comment line below if you want to run multiple algorithms

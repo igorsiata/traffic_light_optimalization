@@ -24,24 +24,18 @@ class GeneticAlgorithm:
                  fitness: FitnessFunc,
                  mutation: MutationFunc,
                  crossover: CrossoverFunc,
+                 selection,
                  control: Control) -> None:
         self.size = population_size
         self.generate_genome = generate_genome
         self.fitness = fitness
         self.mutation = mutation
         self.crossover = crossover
+        self.selection = selection
         self.control = control
 
     def generate_solutions(self) -> Population:
         return [self.generate_genome() for _ in range(self.size)]
-
-    def selection(self,
-                  sorted_solutions: Population
-                  ) -> Population:
-        solutions, weights = zip(*sorted_solutions)
-        return tuple(random.choices(solutions,
-                                    weights=weights,
-                                    k=2))
 
     def sort_solutions(self,
                        solutions: Population
@@ -137,6 +131,7 @@ class TrafficLightsOptGentetic:
                  population_size=100,
                  mutation_prob=0.5,
                  crossover_type="linear",
+                 selection_type="wagowo",
                  crossover_alpha=1.0,
                  cycles=5) -> None:
         # To find neighbour easly light cycle can be represented as
@@ -145,12 +140,17 @@ class TrafficLightsOptGentetic:
         # this can be converted to lights_cycle (List[Direction])
         self.simulation = Simulation(
             turn_time=120, cycles=cycles)
+        self.cycles = cycles
         self.crossover_type = crossover_type
-        self.scale_score = self.simulation.run(self.generate_genome())
+        self.selection_type = selection_type
         # Mapowanie nazw na odpowiednie funkcje
         crossover_funcs = {
             "blx": lambda p1, p2: self.blx_alpha_crossover(p1, p2, crossover_alpha),
             "linear": lambda p1, p2: self.linear_crossover(p1, p2, crossover_alpha)
+        }
+        selection_funcs = {
+            "ranking": lambda sorted_solutions: self.selection_ranking(sorted_solutions),
+            "wagowo": lambda sorted_solutions: self.selection_weights(sorted_solutions),
         }
         self.genetic_algorthm = GeneticAlgorithm(
             control=control,
@@ -158,7 +158,8 @@ class TrafficLightsOptGentetic:
             generate_genome=self.generate_genome,
             fitness=self.fitness,
             mutation=lambda genome: self.mutation(genome, mutation_prob),
-            crossover=crossover_funcs[self.crossover_type]
+            crossover=crossover_funcs[self.crossover_type],
+            selection=selection_funcs[self.selection_type]
         )
 
     def generate_genome(self) -> GeneticAlgorithm.Genome:
@@ -205,7 +206,7 @@ class TrafficLightsOptGentetic:
         Returns:
             int: score
         """
-        return self.scale_score/self.simulation.run(genome)
+        return (100000*self.cycles)/self.simulation.run(genome)
 
     def mutation(self, genome, mutation_prob) -> None:
         """
@@ -256,6 +257,23 @@ class TrafficLightsOptGentetic:
             self.normalize(child1[i][0])
             self.normalize(child2[i][0])
         return child1, child2
+
+    def selection_weights(self,
+                          sorted_solutions
+                          ):
+        solutions, weights = zip(*sorted_solutions)
+        return tuple(random.choices(solutions,
+                                    weights=weights,
+                                    k=2))
+
+    def selection_ranking(self,
+                          sorted_solutions
+                          ):
+        solutions, weights = zip(*sorted_solutions)
+        weights = [i for i in range(len(solutions), 0, -1)]
+        return tuple(random.choices(solutions,
+                                    weights=weights,
+                                    k=2))
 
 
 if __name__ == "__main__":
