@@ -3,6 +3,12 @@ from tkinter import ttk, messagebox
 import threading
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import sys
+import os
+
+# Add project root to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(project_root)
 from scripts.optimalization.genetic_algorithm import TrafficLightsOptGentetic, Control
 from scripts.simulation.graphics import App, SimulationGraphic
 import pygame
