@@ -72,6 +72,8 @@ population_size,generations,elitism_perc,mutation_prob,crossover_type,selection_
 100,200,0.1,0.5,blx,wagowo,1.8,20
 
 
-
-
-
+50,400,0.1,0.5,blx,ranking,1.5,20
+100,200,0.1,0.5,blx,ranking,1.5,20
+200,100,0.1,0.5,blx,ranking,1.5,20
+400,50,0.1,0.5,blx,ranking,1.5,20
+50,400,0.1,0.5,blx,ranking,1.5,20

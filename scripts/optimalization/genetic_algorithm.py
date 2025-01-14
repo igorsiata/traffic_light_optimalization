@@ -206,7 +206,7 @@ class TrafficLightsOptGentetic:
         Returns:
             int: score
         """
-        return (100000*self.cycles)/self.simulation.run(genome)
+        return (1000000)/self.simulation.run(genome)
 
     def mutation(self, genome, mutation_prob) -> None:
         """
