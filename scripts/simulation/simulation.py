@@ -331,13 +331,13 @@ class Simulation:
         cars = []
         for _ in range(self.turn_time):
             car_origin = random.choices(possible_origins,
-                                        weights=[5, 1,
+                                        weights=[1, 1,
                                                  1, 1,
                                                  1, 1,
                                                  1, 1],
                                         k=1)[0]
             car_destination = random.choices(possible_origins,
-                                             weights=[1, 5,
+                                             weights=[1, 1,
                                                       1, 1,
                                                       1, 1,
                                                       1, 1],

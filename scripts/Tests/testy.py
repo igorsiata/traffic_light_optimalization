@@ -1,6 +1,7 @@
 import csv
 import os
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Add project root to sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -10,8 +11,8 @@ from scripts.optimalization.genetic_algorithm import TrafficLightsOptGentetic, C
 
 # Ścieżki plików
 TESTS_FILE = "test_configurations.csv"
-RESULTS_FILE = "test_results.csv"
-FITNESS_HISTORY_FILE = "fitness_history.csv"
+RESULTS_FILE = "test_results2.csv"
+FITNESS_HISTORY_FILE = "fitness_history2.csv"
 
 # Funkcja do generowania pliku z konfiguracjami testów
 def generate_test_configurations():
@@ -30,7 +31,42 @@ def generate_test_configurations():
         # Zapis konfiguracji
         writer.writerows(test_cases)
 
-# Funkcja do wykonywania testów
+# Funkcja do uruchamiania pojedynczego testu
+def execute_test(test_index, config, run):
+    population_size = int(config["population_size"])
+    generations = int(config["generations"])
+    elitism_perc = float(config["elitism_perc"])
+    mutation_prob = float(config["mutation_prob"])
+    crossover_type = config["crossover_type"]
+    selection_type = config["selection_type"]
+    alpha = float(config["alpha"])
+    cycles = int(config["cycles"])
+
+    control = Control()
+    optimizer = TrafficLightsOptGentetic(
+        control=control,
+        population_size=population_size,
+        mutation_prob=mutation_prob,
+        crossover_type=crossover_type,
+        selection_type=selection_type,
+        crossover_alpha=alpha,
+        cycles=cycles
+    )
+
+    best_solution, fitness_history = optimizer.genetic_algorthm.run_evolution_gui(
+        generations, elitism_perc, lambda gen, fitness: None
+    )
+    
+    results = {
+        "test_index": test_index,
+        "run": run,
+        "config": config,
+        "best_fitness": fitness_history[-1],
+        "fitness_history": fitness_history,
+    }
+    return results
+
+# Funkcja do wykonywania testów wieloprocesowo
 def run_tests():
     if not os.path.exists(TESTS_FILE):
         print(f"Plik {TESTS_FILE} nie istnieje. Generuję przykładowe konfiguracje testów.")
@@ -53,50 +89,33 @@ def run_tests():
         # Nagłówki historii fitness
         history_writer.writerow(["test_index", "run", "generation", "fitness"])
 
-        # Wykonaj każdy test
-        for test_index, config in enumerate(configurations):
-            population_size = int(config["population_size"])
-            generations = int(config["generations"])
-            elitism_perc = float(config["elitism_perc"])
-            mutation_prob = float(config["mutation_prob"])
-            crossover_type = config["crossover_type"]
-            selection_type = config["selection_type"]
-            alpha = float(config["alpha"])
-            cycles = int(config["cycles"])
+        # Lista zadań do wykonania
+        tasks = []
+        with ProcessPoolExecutor(max_workers=8) as executor:
+            for test_index, config in enumerate(configurations):
+                for run in range(5):
+                    tasks.append(executor.submit(execute_test, test_index, config, run + 1))
 
-            print(f"Rozpoczynam test: {config}")
-
-            for run in range(5):
-                print(f"  Wykonanie {run + 1}/5")
-
-                # Uruchom algorytm genetyczny
-                control = Control()
-                optimizer = TrafficLightsOptGentetic(
-                    control=control,
-                    population_size=population_size,
-                    mutation_prob=mutation_prob,
-                    crossover_type=crossover_type,
-                    selection_type=selection_type,
-                    crossover_alpha=alpha,
-                    cycles=cycles
-                )
-
-                best_solution, fitness_history = optimizer.genetic_algorthm.run_evolution_gui(
-                    generations, elitism_perc, lambda gen, fitness: None
-                )
+            for future in as_completed(tasks):
+                result = future.result()
+                test_index = result["test_index"]
+                run = result["run"]
+                config = result["config"]
+                best_fitness = result["best_fitness"]
+                fitness_history = result["fitness_history"]
 
                 # Zapis wyników
                 writer.writerow([
-                    population_size, generations, elitism_perc, mutation_prob,
-                    crossover_type, selection_type, alpha, cycles,
-                    fitness_history[-1], run + 1
+                    config["population_size"], config["generations"], config["elitism_perc"], config["mutation_prob"],
+                    config["crossover_type"], config["selection_type"], config["alpha"], config["cycles"],
+                    best_fitness, run
                 ])
 
                 # Zapis historii fitness
                 for generation, fitness in enumerate(fitness_history):
-                    history_writer.writerow([test_index, run + 1, generation, fitness])
+                    history_writer.writerow([test_index, run, generation, fitness])
 
-            print(f"Zakończono test: {config}\n")
+                print(f"Zakończono test {test_index}, uruchomienie {run}")
 
 if __name__ == "__main__":
     run_tests()
